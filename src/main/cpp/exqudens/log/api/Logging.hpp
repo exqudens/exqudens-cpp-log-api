@@ -29,8 +29,8 @@
 #define EXQUDENS_LOG_DEBUG(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, (unsigned short) exqudens::log::api::Logging::Level::DEBUG)
 #endif
 
-#ifndef EXQUDENS_LOG_VERBOSE
-#define EXQUDENS_LOG_VERBOSE(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, (unsigned short) exqudens::log::api::Logging::Level::VERBOSE)
+#ifndef EXQUDENS_LOG_TRACE
+#define EXQUDENS_LOG_TRACE(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, (unsigned short) exqudens::log::api::Logging::Level::TRACE)
 #endif
 
 namespace exqudens::log::api {
@@ -45,7 +45,7 @@ namespace exqudens::log::api {
                 WARNING = 3,
                 INFO = 4,
                 DEBUG = 5,
-                VERBOSE = 6
+                TRACE = 6
             };
 
             class Writer {
