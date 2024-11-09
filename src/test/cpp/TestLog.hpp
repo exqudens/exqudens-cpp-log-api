@@ -79,20 +79,6 @@ class TestLog {
 
   private:
 
-    inline static bool configured = false;
-
-  public:
-
-    static std::string defaultConfig();
-
-    static std::string defaultGlobalConfig();
-
-    static void config(const std::string& file, const std::string& workingDir = "");
-
-    static std::string config(const std::vector<std::string>& commandLineArgs);
-
-  private:
-
     static void log(
         const std::string& file,
         const size_t& line,

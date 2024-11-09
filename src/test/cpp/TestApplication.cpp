@@ -41,9 +41,7 @@ int TestApplication::run(int argc, char** argv) {
       throw std::runtime_error(CALL_INFO + ": TestConfig::getExecutableFile().empty()");
     }
 
-    std::string configType = TestLog::config(args);
-
-    TEST_LOG_I(LOGGER_ID) << "start config type: '" << configType << "'";
+    TEST_LOG_I(LOGGER_ID) << "bgn";
 
     testing::InitGoogleMock(&argc, argv);
     testing::InitGoogleTest(&argc, argv);

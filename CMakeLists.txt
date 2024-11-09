@@ -10,9 +10,9 @@ block()
     if(NOT EXISTS "${CMAKE_CURRENT_BINARY_DIR}/../common/${fileName}")
         file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/tmp/${fileName}")
         file(DOWNLOAD
-            "https://raw.githubusercontent.com/exqudens/exqudens-cmake/1.0.1/src/main/cmake/${fileName}"
+            "https://raw.githubusercontent.com/exqudens/exqudens-cmake/2.0.0/src/main/cmake/${fileName}"
             "${CMAKE_CURRENT_BINARY_DIR}/tmp/${fileName}"
-            EXPECTED_MD5 "d7dd546adf3830d9eb6cca7b0dda7d4e"
+            EXPECTED_MD5 "7e375203230f05ebfb625ad455854449"
             STATUS downloadStatus
         )
         if(NOT "${downloadStatus}" STREQUAL "0;\"No error\"")
@@ -189,6 +189,7 @@ if("${USE_CONAN}")
     set_conan_compiler(CONAN_COMPILER "${CMAKE_CXX_COMPILER_ID}")
     set_conan_compiler_version(CONAN_COMPILER_VERSION "${CMAKE_CXX_COMPILER_ID}" "${CMAKE_CXX_COMPILER_VERSION}" MAX_ELEMENTS "1")
     set_conan_compiler_runtime(CONAN_COMPILER_RUNTIME "${CMAKE_MSVC_RUNTIME_LIBRARY}")
+    set_conan_compiler_runtime_type(CONAN_COMPILER_RUNTIME_TYPE "${CMAKE_MSVC_RUNTIME_LIBRARY}")
 
     set_python_boolean(CONAN_INTERFACE_ONLY "${INTERFACE_ONLY}")
     set_python_boolean(CONAN_BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS}")
@@ -198,73 +199,22 @@ if("${USE_CONAN}")
         "os=${CMAKE_SYSTEM_NAME}"
         "compiler=${CONAN_COMPILER}"
         "compiler.version=${CONAN_COMPILER_VERSION}"
+        "compiler.cstd=${CMAKE_C_STANDARD}"
+        "compiler.cppstd=${CMAKE_CXX_STANDARD}"
         "compiler.runtime=${CONAN_COMPILER_RUNTIME}"
+        "compiler.runtime_type=${CONAN_COMPILER_RUNTIME_TYPE}"
         "compiler.libcxx=${CONAN_COMPILER_LIBCXX}"
         "build_type=${CMAKE_BUILD_TYPE}"
     )
     set_conan_options(CONAN_OPTIONS
-        "shared=${CONAN_BUILD_SHARED_LIBS}"
+        "&:shared=${CONAN_BUILD_SHARED_LIBS}"
+        "*:shared=${CONAN_BUILD_SHARED_LIBS}"
     )
-    if(NOT EXISTS "${CONAN_INSTALL_PREFIX}/conan-packages.cmake")
-        execute_process(
-            COMMAND "${CONAN_COMMAND}" "install"
-                    "--install-folder" "${CONAN_INSTALL_PREFIX}"
-                    ${CONAN_SETTINGS}
-                    "${PROJECT_SOURCE_DIR}/conanfile.py"
-            COMMAND_ECHO "STDERR"
-            ENCODING "UTF-8"
-            COMMAND_ERROR_IS_FATAL "ANY"
-        )
-    endif()
-    if(NOT EXISTS "${CONAN_INSTALL_PREFIX}/conan-packages.cmake")
-        message(FATAL_ERROR "Not exists: '${CONAN_INSTALL_PREFIX}/conan-packages.cmake'")
-    endif()
-    include("${CONAN_INSTALL_PREFIX}/conan-packages.cmake")
-    list(APPEND CMAKE_MODULE_PATH "${CONAN_INSTALL_PREFIX}")
-    foreach(
-        conanPackageName
-        cmakePackageName
-        cmakePackageVersion
-        cmakePackagePath
-        IN ZIP_LISTS
-        "${PROJECT_NAME}_CONAN_PACKAGE_NAMES"
-        "${PROJECT_NAME}_CMAKE_PACKAGE_NAMES"
-        "${PROJECT_NAME}_CMAKE_PACKAGE_VERSIONS"
-        "${PROJECT_NAME}_CMAKE_PACKAGE_PATHS"
-    )
-        if(
-            "" STREQUAL "${conanPackageName}"
-            OR "" STREQUAL "${cmakePackageName}"
-            OR "" STREQUAL "${cmakePackageVersion}"
-            OR "" STREQUAL "${cmakePackagePath}"
-        )
-            string(JOIN " " errorMessage
-                "Empty value 'conanPackageName': '${conanPackageName}'"
-                "or 'cmakePackageName': '${cmakePackageName}'"
-                "or 'cmakePackageVersion': '${cmakePackageVersion}'"
-                "or 'cmakePackagePath': '${cmakePackagePath}'!"
-            )
-            message(FATAL_ERROR "${errorMessage}")
-        elseif(NOT IS_DIRECTORY "${cmakePackagePath}")
-            message(FATAL_ERROR "Not is directory 'cmakePackagePath': '${cmakePackagePath}'!")
-        endif()
-
-        if("${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION}" STREQUAL "")
-            set("${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION" "${cmakePackageVersion}")
-        endif()
-
-        if("${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_PATH}" STREQUAL "")
-            set("${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_PATH" "${cmakePackagePath}")
-        endif()
-
-        list(APPEND "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES" "${cmakePackageName}")
-        list(APPEND CMAKE_PREFIX_PATH "${cmakePackagePath}")
-    endforeach()
     if(NOT "${SKIP_TEST}")
         if(NOT EXISTS "${CONAN_INSTALL_TEST_PREFIX}/conan-packages.cmake")
             execute_process(
                 COMMAND "${CONAN_COMMAND}" "install"
-                        "--install-folder" "${CONAN_INSTALL_TEST_PREFIX}"
+                        "--output-folder" "${CONAN_INSTALL_TEST_PREFIX}"
                         ${CONAN_SETTINGS}
                         ${CONAN_OPTIONS}
                         "${PROJECT_SOURCE_DIR}/test-conanfile.py"
@@ -324,7 +274,6 @@ if("${${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES}" STREQUAL "")
     if(NOT "${SKIP_TEST}")
         list(APPEND "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES"
             "GTest"
-            "Easyloggingpp"
         )
     endif()
 endif()
@@ -335,10 +284,6 @@ endforeach()
 unset(NOT_FOUND_PACKAGE_NAMES)
 foreach(cmakePackageName IN LISTS "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES")
     if("GTest" STREQUAL "${cmakePackageName}")
-        file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/Find${cmakePackageName}.cmake")
-        list(APPEND NOT_FOUND_PACKAGE_NAMES "${cmakePackageName}")
-        find_package("${cmakePackageName}" "${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION}" EXACT QUIET)
-    elseif("Easyloggingpp" STREQUAL "${cmakePackageName}")
         file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/Find${cmakePackageName}.cmake")
         list(APPEND NOT_FOUND_PACKAGE_NAMES "${cmakePackageName}")
         find_package("${cmakePackageName}" "${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION}" EXACT QUIET)
@@ -429,7 +374,6 @@ if(NOT "${SKIP_TEST}")
         "GTest::gtest"
         "GTest::gmock_main"
         "GTest::gtest_main"
-        "Easyloggingpp::Easyloggingpp"
     )
     set_target_properties("test-lib" PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY                "${PROJECT_BINARY_DIR}/test/bin"
@@ -524,11 +468,11 @@ add_custom_target("cmake-install" ALL
 
 add_custom_target("conan-export"
     COMMAND "${CONAN_COMMAND}" "export-pkg"
-            "--force"
-            "--package-folder" "${CMAKE_INSTALL_PREFIX}"
+            "--output-folder" "${CMAKE_INSTALL_PREFIX}"
             ${CONAN_SETTINGS}
+            #"--user" "gitlab-group+gitlab-sub-group+${PROJECT_NAME}"
+            #"--channel" "stable"
             "${PROJECT_SOURCE_DIR}/conanfile.py"
-            #"gitlab-group+gitlab-sub-group+${PROJECT_NAME}/stable"
     DEPENDS "cmake-install"
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     USES_TERMINAL
