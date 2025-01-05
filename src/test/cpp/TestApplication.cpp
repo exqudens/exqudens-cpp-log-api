@@ -41,14 +41,14 @@ int TestApplication::run(int argc, char** argv) {
       throw std::runtime_error(CALL_INFO + ": TestConfig::getExecutableFile().empty()");
     }
 
-    TEST_LOG_I(LOGGER_ID) << "bgn";
+    TEST_LOG_INFO(LOGGER_ID) << "bgn";
 
     testing::InitGoogleMock(&argc, argv);
     testing::InitGoogleTest(&argc, argv);
 
     int result = RUN_ALL_TESTS();
 
-    TEST_LOG_I(LOGGER_ID) << "end";
+    TEST_LOG_INFO(LOGGER_ID) << "end";
 
     return result;
   } catch (const std::exception& e) {

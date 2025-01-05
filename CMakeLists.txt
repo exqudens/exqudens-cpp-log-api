@@ -54,6 +54,8 @@ elseif("gcc" IN_LIST PRESET_NAME_ELEMENTS)
     endif()
 endif()
 
+message(STATUS "CMAKE_TOOLCHAIN_FILE: '${CMAKE_TOOLCHAIN_FILE}'")
+
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/name-version.txt" INFO)
 string(REPLACE ":" ";" INFO_LIST "${INFO}")
 list(GET INFO_LIST 0 RAW_NAME)
@@ -145,17 +147,6 @@ else()
     endif()
 endif()
 
-set(INLINE_MACRO_NAME "${BASE_NAME}_INLINE")
-set(INLINE_MACRO "#  define ${INLINE_MACRO_NAME}")
-if("${INTERFACE_ONLY}")
-    set(INLINE_MACRO "#  define ${INLINE_MACRO_NAME} inline")
-endif()
-string(JOIN "\n" INLINE_MACRO_CONTENT
-    "#ifndef ${INLINE_MACRO_NAME}"
-    "${INLINE_MACRO}"
-    "#endif /* ${INLINE_MACRO_NAME} */\n"
-)
-
 set(TARGET_CMAKE_INSTALL_DEPENDS_ON "${PROJECT_NAME}")
 if(NOT "${SKIP_TEST}")
     set(TARGET_CMAKE_INSTALL_DEPENDS_ON "cmake-test")
@@ -173,6 +164,11 @@ if(NOT "${SKIP_TEST}")
     message(STATUS "TEST_CASE: '${TEST_CASE}'")
     message(STATUS "TEST_REGEXP: '${TEST_REGEXP}'")
 endif()
+
+message(STATUS "TARGET_CMAKE_INSTALL_DEPENDS_ON:")
+foreach(v IN LISTS "TARGET_CMAKE_INSTALL_DEPENDS_ON")
+    message(STATUS "${v}")
+endforeach()
 
 set(CONAN_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/conan-install")
 
@@ -228,6 +224,7 @@ if("${USE_CONAN}")
         endif()
         include("${CONAN_INSTALL_TEST_PREFIX}/conan-packages.cmake")
         list(APPEND CMAKE_MODULE_PATH "${CONAN_INSTALL_TEST_PREFIX}")
+        list(APPEND CMAKE_PREFIX_PATH "${CONAN_INSTALL_TEST_PREFIX}")
         foreach(
             conanPackageName
             cmakePackageName
@@ -279,12 +276,13 @@ if("${${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES}" STREQUAL "")
 endif()
 message(STATUS "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES:")
 foreach(cmakePackageName IN LISTS "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES")
-    message(STATUS "  ${cmakePackageName}")
+    message(STATUS "${cmakePackageName}")
 endforeach()
 unset(NOT_FOUND_PACKAGE_NAMES)
 foreach(cmakePackageName IN LISTS "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES")
     if("GTest" STREQUAL "${cmakePackageName}")
-        file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/Find${cmakePackageName}.cmake")
+        file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/${cmakePackageName}Config.cmake")
+        file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/${cmakePackageName}-config.cmake")
         list(APPEND NOT_FOUND_PACKAGE_NAMES "${cmakePackageName}")
         find_package("${cmakePackageName}" "${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION}" EXACT QUIET)
     else()
@@ -445,25 +443,35 @@ if(NOT "${SKIP_TEST}")
     gtest_discover_tests("test-app"
         EXTRA_ARGS "--logging-config" "${PROJECT_SOURCE_DIR}/src/test/resources/logging-config.txt"
         WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/test/bin"
-        PROPERTIES XML_OUTPUT_DIR "${PROJECT_BINARY_DIR}/test/report/xml"
+        #PROPERTIES XML_OUTPUT_DIR "${PROJECT_BINARY_DIR}/test/report/xml"
                    #ENVIRONMENT "PARENT_PATH=;PATH="
     )
 
-    add_custom_target("cmake-test"
-        COMMAND "${CMAKE_CTEST_COMMAND}" --preset "${PRESET_NAME}" "-R" "${TEST_REGEXP}"
+    add_custom_command(
+        OUTPUT "${PROJECT_BINARY_DIR}/junit.xml"
+        COMMAND "${CMAKE_CTEST_COMMAND}" "--build-nocmake" "--output-junit" "${PROJECT_BINARY_DIR}/junit.xml" "--preset" "${PRESET_NAME}" "-R" "${TEST_REGEXP}"
         DEPENDS "test-app"
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         USES_TERMINAL
         VERBATIM
     )
+
+    add_custom_target("cmake-test"
+        DEPENDS "${PROJECT_BINARY_DIR}/junit.xml"
+    )
 endif()
 
-add_custom_target("cmake-install" ALL
+add_custom_command(
+    OUTPUT "${CMAKE_INSTALL_PREFIX}/cmake/${PROJECT_NAME}-config.cmake"
     COMMAND "${CMAKE_COMMAND}" --install "${PROJECT_BINARY_DIR}" --prefix "${CMAKE_INSTALL_PREFIX}"
     DEPENDS ${TARGET_CMAKE_INSTALL_DEPENDS_ON}
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     USES_TERMINAL
     VERBATIM
+)
+
+add_custom_target("cmake-install" ALL
+    DEPENDS "${CMAKE_INSTALL_PREFIX}/cmake/${PROJECT_NAME}-config.cmake"
 )
 
 add_custom_target("conan-export"
@@ -474,6 +482,20 @@ add_custom_target("conan-export"
             #"--channel" "stable"
             "${PROJECT_SOURCE_DIR}/conanfile.py"
     DEPENDS "cmake-install"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    USES_TERMINAL
+    VERBATIM
+)
+
+add_custom_target("conan-remove"
+    COMMAND "${CONAN_COMMAND}" "remove" "-c" "${PROJECT_NAME}/${PROJECT_VERSION}"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    USES_TERMINAL
+    VERBATIM
+)
+
+add_custom_target("conan-list"
+    COMMAND "${CONAN_COMMAND}" "list" "${PROJECT_NAME}/${PROJECT_VERSION}:*"
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     USES_TERMINAL
     VERBATIM

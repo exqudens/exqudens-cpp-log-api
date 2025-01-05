@@ -1,12 +1,9 @@
 from pathlib import Path
 
-
 required_conan_version = ">=2.0"
-
 
 from conan import ConanFile
 from conan.tools.files import copy, save
-
 
 class ConanConfiguration(ConanFile):
     settings = "arch", "os", "compiler", "build_type"
@@ -18,14 +15,14 @@ class ConanConfiguration(ConanFile):
         try:
             self.requires("gtest/1.11.0")
         except Exception as e:
-            self.output.error(e, exc_info=True)
+            self.output.error(e)
             raise e
 
     def configure(self):
         try:
             self.options["gtest"].shared = self.options.shared
         except Exception as e:
-            self.output.error(e, exc_info=True)
+            self.output.error(e)
             raise e
 
     def generate(self):
@@ -58,11 +55,10 @@ class ConanConfiguration(ConanFile):
 
             for dep in self.dependencies.values():
                 for dir in dep.cpp_info.bindirs:
-                    copy(self, pattern="*.dll", src=dir, dst=self.build_folder)
+                    copy(self, pattern="*.dll", src=Path(dir).as_posix(), dst=Path(self.build_folder).joinpath("bin").as_posix())
         except Exception as e:
-            self.output.error(e, exc_info=True)
+            self.output.error(e)
             raise e
-
 
 if __name__ == "__main__":
     pass
