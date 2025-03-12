@@ -112,6 +112,8 @@ endif()
 set(CMAKE_VERBOSE_MAKEFILE "TRUE" CACHE BOOL "" FORCE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS "TRUE" CACHE BOOL "" FORCE)
 
+cmake_path(RELATIVE_PATH "PROJECT_BINARY_DIR" BASE_DIRECTORY "${PROJECT_SOURCE_DIR}" OUTPUT_VARIABLE "PROJECT_BINARY_DIR_REL")
+cmake_path(CONVERT "$ENV{PATH}" TO_CMAKE_PATH_LIST "ENV_PATH" NORMALIZE)
 set(CMAKE_OBJECT_PATH_MAX 1000)
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_SHARED_MODULE_PREFIX "")
@@ -454,12 +456,18 @@ if(NOT "${SKIP_TEST}")
             )
         endif()
     endif()
+    add_custom_command(TARGET "test-app"
+        POST_BUILD
+        COMMAND "$<TARGET_FILE:test-app>" "--gtest_list_tests" "--gtest_output=json:tests.json"
+        WORKING_DIRECTORY "$<TARGET_FILE_DIR:test-app>"
+        USES_TERMINAL
+        VERBATIM
+    )
 
     gtest_discover_tests("test-app"
         EXTRA_ARGS "--logging-config" "${PROJECT_SOURCE_DIR}/src/test/resources/logging-config.txt"
-        WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/test/bin"
-        #PROPERTIES XML_OUTPUT_DIR "${PROJECT_BINARY_DIR}/test/report/xml"
-                   #ENVIRONMENT "PARENT_PATH=;PATH="
+        WORKING_DIRECTORY "$<TARGET_FILE_DIR:test-app>"
+        PROPERTIES ENVIRONMENT "PATH=$<TARGET_FILE_DIR:test-app>;${ENV_PATH}"
     )
 
     add_custom_command(
@@ -516,6 +524,26 @@ add_custom_target("conan-list"
     VERBATIM
 )
 
+add_custom_target("vscode"
+    COMMAND "${CMAKE_COMMAND}" "-P" "cmake/vscode.cmake" "--" "vscode"
+            SOURCE_DIR "${PROJECT_SOURCE_DIR}"
+            BINARY_DIR "${PROJECT_BINARY_DIR}"
+
+            LAUNCH_GENERATE "true"
+            LAUNCH_FILE_OVERWRITE "true"
+            LAUNCH_TEMPLATE_FILE "${PROJECT_SOURCE_DIR}/src/test/resources/vscode/launch.json"
+            LAUNCH_FILE "${PROJECT_SOURCE_DIR}/.vscode/launch.json"
+            LAUNCH_TESTS_FILE "${PROJECT_BINARY_DIR}/test/bin/tests.json"
+            #LAUNCH_DEFAULT_TEST "UnitTests.test1"
+
+            LAUNCH_ENV_PATH "${PROJECT_BINARY_DIR}/test/bin"
+            LAUNCH_ADD_OPTIONS "*.*"
+    DEPENDS "test-app"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    USES_TERMINAL
+    VERBATIM
+)
+
 set_target_names(ALL_TARGETS "${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "all-targets:")
 foreach(t IN LISTS ALL_TARGETS)
@@ -528,20 +556,3 @@ set("${PROJECT_NAME}_ADDITIONAL_CLEAN_FILES"
 set_directory_properties(PROPERTIES
     ADDITIONAL_CLEAN_FILES "${${PROJECT_NAME}_ADDITIONAL_CLEAN_FILES}"
 )
-
-# Generate vscode files if env var VSCODE value is "true"
-if("$ENV{VSCODE}")
-    include("${PROJECT_SOURCE_DIR}/cmake/vscode.cmake")
-    if("$ENV{VSCODE_SETTINGS}")
-        vscode(SETTINGS_FILE "${PROJECT_SOURCE_DIR}/.vscode/settings.json")
-    endif()
-    if("$ENV{VSCODE_C_CPP_PROPERTIES}")
-        vscode(C_CPP_PROPERTIES_FILE "${PROJECT_SOURCE_DIR}/.vscode/c_cpp_properties.json")
-    endif()
-    if("$ENV{VSCODE_TASKS}")
-        vscode(TASKS_FILE "${PROJECT_SOURCE_DIR}/.vscode/tasks.json")
-    endif()
-    if("$ENV{VSCODE_LAUNCH}")
-        vscode(LAUNCH_FILE "${PROJECT_SOURCE_DIR}/.vscode/launch.json")
-    endif()
-endif()
