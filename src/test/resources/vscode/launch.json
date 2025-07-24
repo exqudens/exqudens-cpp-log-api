@@ -7,7 +7,7 @@
             "request": "launch",
             "console": "internalConsole",
             "cwd": "${workspaceRoot}",
-            "program": "${workspaceRoot}/@binary-dir-rel@/test-app.exe",
+            "program": "${workspaceRoot}/@binary-dir-rel@/test/bin/test-app.exe",
             "args": [
                 "--project-binary-dir=${workspaceRoot}/@binary-dir-rel@",
                 "--gtest_filter=${input:pick-test}"

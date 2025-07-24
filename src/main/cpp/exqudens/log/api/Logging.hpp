@@ -7,36 +7,11 @@
 #include <cstddef>
 #include <string>
 #include <any>
-#include <vector>
 #include <map>
 #include <sstream>
 
-#ifndef EXQUDENS_LOG_FATAL
-#define EXQUDENS_LOG_FATAL(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, 1)
-#endif
-
-#ifndef EXQUDENS_LOG_ERROR
-#define EXQUDENS_LOG_ERROR(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, 2)
-#endif
-
-#ifndef EXQUDENS_LOG_WARNING
-#define EXQUDENS_LOG_WARNING(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, 3)
-#endif
-
-#ifndef EXQUDENS_LOG_INFO
-#define EXQUDENS_LOG_INFO(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, 4)
-#endif
-
-#ifndef EXQUDENS_LOG_DEBUG
-#define EXQUDENS_LOG_DEBUG(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, 5)
-#endif
-
-#ifndef EXQUDENS_LOG_TRACE
-#define EXQUDENS_LOG_TRACE(id) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, 6)
-#endif
-
-#ifndef EXQUDENS_LOG_API_EXPORT
-#define EXQUDENS_LOG_API_EXPORT
+#ifndef EXQUDENS_LOG
+#define EXQUDENS_LOG(id, level) exqudens::log::api::Logging::Writer(__FILE__, __LINE__, __FUNCTION__, id, level)
 #endif
 
 namespace exqudens::log::api {
@@ -82,11 +57,13 @@ namespace exqudens::log::api {
 
         private:
 
-            inline static bool configured = false;
+            inline static std::any data = {};
 
         public:
 
-            static std::map<unsigned short, std::string> levelNameMap();
+            static std::string configure(const std::any& input);
+
+            static bool isConfigured();
 
             static void write(
                 const std::string& file,
@@ -95,17 +72,9 @@ namespace exqudens::log::api {
                 const std::string& id,
                 const unsigned short level,
                 const std::string& message
-            );
-
-            static std::string configure(const std::any& input);
-
-            static bool isConfigured();
+            ) noexcept;
 
             static void reset();
-
-            static std::string commandLineKey();
-
-            static std::string configureCommandLine(const std::vector<std::string>& arguments);
 
     };
 
