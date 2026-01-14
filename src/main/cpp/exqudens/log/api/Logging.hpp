@@ -1,5 +1,6 @@
 /*!
-* @file Logging.hpp
+* @author Andrii Gorin
+* @copyright MIT License.
 */
 
 #pragma once
