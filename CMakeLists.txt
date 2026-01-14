@@ -546,6 +546,27 @@ add_custom_target("vscode"
     VERBATIM
 )
 
+add_custom_target("clion"
+    COMMAND "${CMAKE_COMMAND}" "-P" "cmake/util.cmake" "--" "clion"
+            SOURCE_DIR "${PROJECT_SOURCE_DIR}"
+            BINARY_DIR "${PROJECT_BINARY_DIR}"
+
+            GTEST_GENERATE "1"
+            GTEST_FILES_OVERWRITE "1"
+            GTEST_TESTS_FILE "${PROJECT_BINARY_DIR}/test/bin/tests.json"
+            GTEST_TEMPLATE_FILE "${PROJECT_SOURCE_DIR}/src/test/resources/clion/gtest/filter-run.xml"
+            GTEST_CONFIG_NAME "${PRESET_NAME}"
+            GTEST_PROJECT_NAME "${PROJECT_NAME}"
+            GTEST_TARGET_NAME "test-app"
+            GTEST_OUTPUT_DIR "${PROJECT_SOURCE_DIR}/.clion/gtest"
+            GTEST_TESTS "*.*" "*UnitTests.*"
+            GTEST_PROGRAM_PARAMS "--project-binary-dir=${PROJECT_BINARY_DIR}"
+    DEPENDS "${PROJECT_NAME}" "test-app"
+    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    USES_TERMINAL
+    VERBATIM
+)
+
 set_target_names(ALL_TARGETS "${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "all-targets:")
 foreach(t IN LISTS ALL_TARGETS)
