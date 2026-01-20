@@ -209,7 +209,7 @@ if("${USE_CONAN}")
     set_conan_compiler_runtime(CONAN_COMPILER_RUNTIME "${CMAKE_MSVC_RUNTIME_LIBRARY}")
     set_conan_compiler_runtime_type(CONAN_COMPILER_RUNTIME_TYPE "${CMAKE_MSVC_RUNTIME_LIBRARY}")
 
-    set_python_boolean(CONAN_INTERFACE_ONLY "${INTERFACE_ONLY}")
+    set_python_boolean(CONAN_HEADER_ONLY "${INTERFACE_ONLY}")
     set_python_boolean(CONAN_BUILD_SHARED_LIBS "${BUILD_SHARED_LIBS}")
 
     set_conan_settings(CONAN_SETTINGS
@@ -225,6 +225,7 @@ if("${USE_CONAN}")
         "build_type=${CMAKE_BUILD_TYPE}"
     )
     set_conan_options(CONAN_OPTIONS
+        "${PROJECT_NAME}/*:header_only=${CONAN_HEADER_ONLY}"
         "&:shared=${CONAN_BUILD_SHARED_LIBS}"
         "*:shared=${CONAN_BUILD_SHARED_LIBS}"
     )

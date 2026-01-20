@@ -7,6 +7,8 @@ from conan.tools.files import copy
 
 class ConanConfiguration(ConanFile):
     settings = "arch", "os", "compiler", "build_type"
+    options = {"shared": [True, False], 'header_only': [True, False]}
+    default_options = {"shared": False, 'header_only': True}
 
     def set_name(self):
         try:
@@ -48,10 +50,8 @@ class ConanConfiguration(ConanFile):
 
     def package_id(self):
         try:
-            self.info.clear()
+            if self.info.options.get_safe('header_only'):
+                self.info.clear()
         except Exception as e:
             self.output.error(e)
             raise e
-
-if __name__ == "__main__":
-    pass
