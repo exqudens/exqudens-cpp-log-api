@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <filesystem>
 #include <numeric>
-#include <limits>
+#include <climits>
 #include <algorithm>
 #include <sstream>
 #include <fstream>

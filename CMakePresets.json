@@ -221,7 +221,7 @@
 
         {
             "name": "linux.ninja.gcc.interface",
-            "inherits": ["default", "linux", "ninja", "gcc", "interface", "debug", "static", "mtd"],
+            "inherits": ["default", "linux", "ninja", "gcc", "interface", "debug", "static"],
             "binaryDir": "${sourceDir}/build/100"
         },
         {
