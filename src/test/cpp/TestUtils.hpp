@@ -7,19 +7,15 @@
 #include <map>
 #include <exception>
 
-class TestUtils {
+#include "test_lib_export.hpp"
+
+class TEST_LIB_EXPORT TestUtils {
 
     private:
 
-        struct Data {
-            std::optional<std::string> executableFile = {};
-            std::optional<std::string> executableDir = {};
-            std::optional<std::string> projectBinaryDir = {};
-        };
-
-    private:
-
-        inline static Data data = {};
+        inline static std::optional<std::string> executableFile = {};
+        inline static std::optional<std::string> executableDir = {};
+        inline static std::optional<std::string> projectBinaryDir = {};
 
     public:
 

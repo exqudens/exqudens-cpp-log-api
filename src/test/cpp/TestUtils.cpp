@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <filesystem>
 #include <numeric>
+#include <limits>
 #include <algorithm>
 #include <sstream>
 #include <fstream>
@@ -15,20 +16,20 @@
 void TestUtils::init(const std::vector<std::string>& input) {
     try {
         for (size_t i = 0; i < input.size(); i++) {
-            if (!data.executableFile.has_value() && i == 0) {
+            if (!executableFile.has_value() && i == 0) {
                 std::filesystem::path path = std::filesystem::path(input.at(i));
-                data.executableFile = path.generic_string();
+                executableFile = path.generic_string();
                 if (!path.parent_path().empty()) {
-                    data.executableDir = path.parent_path().generic_string();
+                    executableDir = path.parent_path().generic_string();
                 }
             }
-            if (!data.projectBinaryDir.has_value() && i != 0 && input.at(i).starts_with("--project-binary-dir=")) {
+            if (!projectBinaryDir.has_value() && i != 0 && input.at(i).starts_with("--project-binary-dir=")) {
                 std::vector<std::string> parts = split(input.at(i), "=");
                 if (parts.size() > 1) {
                     std::filesystem::path path = std::filesystem::path(parts.at(1));
-                    data.executableFile = path.generic_string();
+                    executableFile = path.generic_string();
                     if (!path.parent_path().empty()) {
-                        data.executableDir = path.parent_path().generic_string();
+                        executableDir = path.parent_path().generic_string();
                     }
                 }
             }

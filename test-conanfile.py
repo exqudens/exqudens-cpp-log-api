@@ -7,13 +7,13 @@ from conan.tools.files import copy, save
 
 class ConanConfiguration(ConanFile):
     settings = "arch", "os", "compiler", "build_type"
-    options = {"shared": [True, False], "interface": [True, False]}
-    default_options = {"shared": True, "interface": False}
-    generators = "CMakeDeps"
+    options = {"shared": [True, False]}
+    default_options = {"shared": True}
+    #generators = "CMakeDeps"
 
     def requirements(self):
         try:
-            self.requires("gtest/1.11.0")
+            self.requires("gtest/1.11.0.0")
         except Exception as e:
             self.output.error(e)
             raise e

@@ -3,10 +3,16 @@ cmake_minimum_required(VERSION "3.25" FATAL_ERROR)
 set(CMAKE_UTIL_FILE "" CACHE STRING "...")
 set(USE_CONAN "1" CACHE BOOL "...")
 
-message(STATUS "USE_CONAN: '${USE_CONAN}'")
+string(REPLACE "." ";" PRESET_NAME_ELEMENTS "${PRESET_NAME}")
 
 if("${USE_CONAN}")
-    find_program(CONAN_COMMAND NAMES "conan.exe" "conan" PATHS ENV CONAN_PATH ENV PATH REQUIRED NO_CACHE NO_DEFAULT_PATH)
+    message(STATUS "USE_CONAN: '${USE_CONAN}'")
+    if("windows" IN_LIST "PRESET_NAME_ELEMENTS")
+        find_program(CONAN_COMMAND NAMES "conan.exe" PATHS ENV CONAN_PATH ENV PATH REQUIRED NO_CACHE NO_DEFAULT_PATH)
+    else()
+        find_program(CONAN_COMMAND NAMES "conan" PATHS ENV CONAN_PATH ENV PATH REQUIRED NO_CACHE NO_DEFAULT_PATH)
+    endif()
+    message(STATUS "CONAN_COMMAND: '${CONAN_COMMAND}'")
 endif()
 
 if("${CMAKE_UTIL_FILE}" STREQUAL "")
@@ -16,12 +22,14 @@ if("${CMAKE_UTIL_FILE}" STREQUAL "")
                 #[[execute_process(
                     COMMAND "${CONAN_COMMAND}" "user" "$ENV{CONAN_LOGIN_USERNAME}" "-r" "artifactory" "-p"
                     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+                    COMMAND_ECHO "STDOUT"
                     ENCODING "UTF-8"
                     COMMAND_ERROR_IS_FATAL "ANY"
                 )]]
                 execute_process(
                     COMMAND "${CONAN_COMMAND}" "install" "--tool-requires=exqudens-cmake/0.0.1" "--deployer" "direct_deploy" "--deployer-folder" "${CMAKE_SOURCE_DIR}/build/dependencies"
-                    COMMAND_ECHO "STDERR"
+                    WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+                    COMMAND_ECHO "STDOUT"
                     ENCODING "UTF-8"
                     COMMAND_ERROR_IS_FATAL "ANY"
                 )
@@ -36,16 +44,7 @@ if("${CMAKE_UTIL_FILE}" STREQUAL "")
         set(CMAKE_UTIL_FILE "$ENV{CMAKE_UTIL_FILE}" CACHE STRING "..." FORCE)
     endif()
 endif()
-
-set(SKIP_TEST "0" CACHE BOOL "...")
-set(TEST_GROUP ".*UnitTests" CACHE STRING "...")
-set(TEST_CASE "all" CACHE STRING "...")
-
 message(STATUS "CMAKE_UTIL_FILE: '${CMAKE_UTIL_FILE}'")
-message(STATUS "USE_CONAN: '${USE_CONAN}'")
-message(STATUS "SKIP_TEST: '${SKIP_TEST}'")
-message(STATUS "TEST_GROUP: '${TEST_GROUP}'")
-message(STATUS "TEST_CASE: '${TEST_CASE}'")
 
 include("${CMAKE_UTIL_FILE}")
 
@@ -72,32 +71,22 @@ elseif("gcc" IN_LIST PRESET_NAME_ELEMENTS)
         )
     endif()
 endif()
-
 message(STATUS "CMAKE_TOOLCHAIN_FILE: '${CMAKE_TOOLCHAIN_FILE}'")
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/name-version.txt" INFO)
 string(REPLACE ":" ";" INFO_LIST "${INFO}")
-list(GET INFO_LIST 0 RAW_NAME)
-list(GET INFO_LIST 1 RAW_VERSION)
+list(GET "INFO_LIST" "0" RAW_NAME)
+list(GET "INFO_LIST" "1" RAW_VERSION)
 string(STRIP "${RAW_NAME}" NAME)
 string(STRIP "${RAW_VERSION}" VERSION)
 project("${NAME}" VERSION "${VERSION}" LANGUAGES "NONE")
 
-message(STATUS "PROJECT_NAME: '${PROJECT_NAME}'")
-message(STATUS "PROJECT_VERSION: '${PROJECT_VERSION}'")
+message(STATUS "project: '${PROJECT_NAME}-${PROJECT_VERSION}'")
 
-string(REPLACE "_" "-" BASE_DIR "${PROJECT_NAME}")
-string(REPLACE "-cpp-" "-" BASE_DIR "${BASE_DIR}")
-string(REPLACE "-" "/" BASE_DIR "${BASE_DIR}")
-
-message(STATUS "BASE_DIR: '${BASE_DIR}'")
-
-string(REPLACE "/" "_" BASE_NAME "${BASE_DIR}")
-string(TOUPPER "${BASE_NAME}" BASE_NAME)
-
-message(STATUS "BASE_NAME: '${BASE_NAME}'")
-
+enable_language("C")
+enable_language("CXX")
 include("GenerateExportHeader")
+include("CMakePackageConfigHelpers")
 enable_testing()
 include("GoogleTest")
 
@@ -108,9 +97,6 @@ if("$ENV{CLION_IDE}")
     set("ENV{PATH}" "${TMP_NATIVE_ENV_PATH}")
 endif()
 
-enable_language("C")
-enable_language("CXX")
-
 if("${CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT}")
     set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/cmake-install" CACHE PATH "..." FORCE)
 endif()
@@ -119,7 +105,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "1" CACHE BOOL "" FORCE)
 
 cmake_path(RELATIVE_PATH "PROJECT_BINARY_DIR" BASE_DIRECTORY "${PROJECT_SOURCE_DIR}" OUTPUT_VARIABLE "PROJECT_BINARY_DIR_REL")
 cmake_path(CONVERT "$ENV{PATH}" TO_CMAKE_PATH_LIST "ENV_PATH" NORMALIZE)
-set(CMAKE_OBJECT_PATH_MAX 1000)
+set(CMAKE_OBJECT_PATH_MAX "1000")
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_SHARED_MODULE_PREFIX "")
 set(CMAKE_STATIC_LIBRARY_PREFIX "")
@@ -141,50 +127,44 @@ set(CMAKE_BUILD_RPATH_USE_ORIGIN "1")
 set(CMAKE_BUILD_WITH_INSTALL_RPATH "1")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH "0")
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS "0")
-set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
+set(CMAKE_CXX_VISIBILITY_PRESET "hidden") # "default" or "hidden"
 set(CMAKE_VISIBILITY_INLINES_HIDDEN "1")
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD "11")
 set(CMAKE_C_STANDARD_REQUIRED "1")
 set(CMAKE_C_EXTENSIONS "0")
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD "20")
 set(CMAKE_CXX_STANDARD_REQUIRED "1")
 set(CMAKE_CXX_EXTENSIONS "0")
 
-separate_arguments(CMAKE_CXX_FLAGS NATIVE_COMMAND "${CMAKE_CXX_FLAGS}")
-if(MSVC)
+if("msvc-x64-x64" IN_LIST "PRESET_NAME_ELEMENTS")
+    #set(CMAKE_CXX_STANDARD_LIBRARIES "${CMAKE_CXX_STANDARD_LIBRARIES} setupapi.lib")
+    separate_arguments(CMAKE_CXX_FLAGS NATIVE_COMMAND "${CMAKE_CXX_FLAGS}")
     if(NOT "/EHa" IN_LIST CMAKE_CXX_FLAGS AND "/EHsc" IN_LIST CMAKE_CXX_FLAGS)
         list(REMOVE_ITEM CMAKE_CXX_FLAGS "/EHsc")
         list(APPEND CMAKE_CXX_FLAGS "/EHa")
     endif()
+    string(JOIN " " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+    set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -D_WINDOWS")
+    foreach(v IN LISTS "CMAKE_C_STANDARD_INCLUDE_DIRECTORIES")
+        cmake_path(NATIVE_PATH "v" NORMALIZE "vn")
+        set(CMAKE_RC_FLAGS "${CMAKE_RC_FLAGS} -I \"${vn}\"")
+    endforeach()
 endif()
-string(JOIN " " CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 
-if("${BUILD_SHARED_LIBS}")
-    set(CONAN_RELEASE_COMPILER_RUNTIME "MD")
-else()
-    set(CONAN_RELEASE_COMPILER_RUNTIME "MT")
+if(NOT "${BUILD_SHARED_LIBS}")
     if("${MINGW}")
         set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ ${CMAKE_CXX_STANDARD_LIBRARIES}")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
     endif()
 endif()
 
+set(SKIP_TEST "0" CACHE BOOL "...")
+
+message(STATUS "SKIP_TEST: '${SKIP_TEST}'")
+
 set(TARGET_CMAKE_INSTALL_DEPENDS_ON "${PROJECT_NAME}")
 if(NOT "${SKIP_TEST}")
     set(TARGET_CMAKE_INSTALL_DEPENDS_ON "cmake-test")
-    if("${TEST_GROUP}" STREQUAL "all" AND "${TEST_CASE}" STREQUAL "all")
-        set(TEST_REGEXP "^.+\\..+$")
-    elseif(NOT "${TEST_GROUP}" STREQUAL "all" AND "${TEST_CASE}" STREQUAL "all")
-        set(TEST_REGEXP "^${TEST_GROUP}\\..+$")
-    elseif("${TEST_GROUP}" STREQUAL "all" AND NOT "${TEST_CASE}" STREQUAL "all")
-        set(TEST_REGEXP "^.+\\.${TEST_CASE}$")
-    elseif(NOT "${TEST_GROUP}" STREQUAL "all" AND NOT "${TEST_CASE}" STREQUAL "all")
-        set(TEST_REGEXP "^${TEST_GROUP}\\.${TEST_CASE}$")
-    endif()
-
-    message(STATUS "TEST_GROUP: '${TEST_GROUP}'")
-    message(STATUS "TEST_CASE: '${TEST_CASE}'")
-    message(STATUS "TEST_REGEXP: '${TEST_REGEXP}'")
 endif()
 
 message(STATUS "TARGET_CMAKE_INSTALL_DEPENDS_ON:")
@@ -197,10 +177,14 @@ set(CONAN_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/conan-install")
 file(MAKE_DIRECTORY "${CONAN_INSTALL_PREFIX}/bin")
 file(MAKE_DIRECTORY "${CONAN_INSTALL_PREFIX}/lib")
 
-set(CONAN_INSTALL_TEST_PREFIX "${PROJECT_BINARY_DIR}/conan-install-test")
+file(MAKE_DIRECTORY "${CONAN_INSTALL_PREFIX}/test/bin")
+file(MAKE_DIRECTORY "${CONAN_INSTALL_PREFIX}/test/lib")
 
-file(MAKE_DIRECTORY "${CONAN_INSTALL_TEST_PREFIX}/bin")
-file(MAKE_DIRECTORY "${CONAN_INSTALL_TEST_PREFIX}/lib")
+string(REPLACE "_" "-" BASE_DIR "${PROJECT_NAME}")
+string(REPLACE "-cpp-" "-" BASE_DIR "${BASE_DIR}")
+string(REPLACE "-" "/" BASE_DIR "${BASE_DIR}")
+
+message(STATUS "BASE_DIR: '${BASE_DIR}'")
 
 if("${USE_CONAN}")
     set_conan_architecture(CONAN_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
@@ -230,24 +214,25 @@ if("${USE_CONAN}")
         "*:shared=${CONAN_BUILD_SHARED_LIBS}"
     )
     if(NOT "${SKIP_TEST}")
-        if(NOT EXISTS "${CONAN_INSTALL_TEST_PREFIX}/conan-packages.cmake")
+        if(NOT EXISTS "${CONAN_INSTALL_PREFIX}/test/conan-packages.cmake")
             execute_process(
                 COMMAND "${CONAN_COMMAND}" "install"
-                        "--output-folder" "${CONAN_INSTALL_TEST_PREFIX}"
+                        "--output-folder" "${CONAN_INSTALL_PREFIX}/test"
                         ${CONAN_SETTINGS}
                         ${CONAN_OPTIONS}
                         "${PROJECT_SOURCE_DIR}/test-conanfile.py"
-                COMMAND_ECHO "STDERR"
+                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+                COMMAND_ECHO "STDOUT"
                 ENCODING "UTF-8"
                 COMMAND_ERROR_IS_FATAL "ANY"
             )
         endif()
-        if(NOT EXISTS "${CONAN_INSTALL_TEST_PREFIX}/conan-packages.cmake")
-            message(FATAL_ERROR "Not exists: '${CONAN_INSTALL_TEST_PREFIX}/conan-packages.cmake'")
+        if(NOT EXISTS "${CONAN_INSTALL_PREFIX}/test/conan-packages.cmake")
+            message(FATAL_ERROR "Not exists: '${CONAN_INSTALL_PREFIX}/test/conan-packages.cmake'")
         endif()
-        include("${CONAN_INSTALL_TEST_PREFIX}/conan-packages.cmake")
-        list(APPEND CMAKE_MODULE_PATH "${CONAN_INSTALL_TEST_PREFIX}")
-        list(APPEND CMAKE_PREFIX_PATH "${CONAN_INSTALL_TEST_PREFIX}")
+        include("${CONAN_INSTALL_PREFIX}/test/conan-packages.cmake")
+        list(APPEND CMAKE_MODULE_PATH "${CONAN_INSTALL_PREFIX}/test")
+        list(APPEND CMAKE_PREFIX_PATH "${CONAN_INSTALL_PREFIX}/test")
         foreach(
             conanPackageName
             cmakePackageName
@@ -304,10 +289,13 @@ endforeach()
 unset(NOT_FOUND_PACKAGE_NAMES)
 foreach(cmakePackageName IN LISTS "${PROJECT_NAME}_CMAKE_FIND_PACKAGE_NAMES")
     if("GTest" STREQUAL "${cmakePackageName}")
-        file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/${cmakePackageName}Config.cmake")
-        file(REMOVE "${CONAN_INSTALL_TEST_PREFIX}/${cmakePackageName}-config.cmake")
+        file(REMOVE "${CONAN_INSTALL_PREFIX}/test/${cmakePackageName}Config.cmake")
+        file(REMOVE "${CONAN_INSTALL_PREFIX}/test/${cmakePackageName}-config.cmake")
         list(APPEND NOT_FOUND_PACKAGE_NAMES "${cmakePackageName}")
-        find_package("${cmakePackageName}" "${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION}" EXACT QUIET)
+        string(REPLACE "." ";" cmakePackageNameVersion "${${PROJECT_NAME}_CMAKE_PACKAGE_${cmakePackageName}_VERSION}")
+        list(GET "cmakePackageNameVersion" "0" "1" "2" cmakePackageNameVersion)
+        list(JOIN "cmakePackageNameVersion" "." cmakePackageNameVersion)
+        find_package("${cmakePackageName}" "${cmakePackageNameVersion}" EXACT QUIET)
     else()
         message("Ignore cmakePackageName: '${cmakePackageName}'")
     endif()
@@ -326,8 +314,8 @@ add_library("${PROJECT_NAME}" INTERFACE
     "src/main/cpp/exqudens/log/api/Logging.hpp"
 )
 target_include_directories("${PROJECT_NAME}" INTERFACE
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/main/cpp>"
     "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/generated/src/main/cpp>"
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/main/cpp>"
     "$<INSTALL_INTERFACE:include>"
 )
 #set_property(TARGET "${PROJECT_NAME}" PROPERTY "VERSION" "${PROJECT_VERSION}")
@@ -340,7 +328,6 @@ install(
     NAMESPACE "${PROJECT_NAME}::"
     FILE "${PROJECT_NAME}-targets.cmake"
 )
-include(CMakePackageConfigHelpers)
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/package-config.cmake.in"
     "${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
@@ -374,14 +361,25 @@ install(
 )
 
 if(NOT "${SKIP_TEST}")
-    add_library("test-lib" STATIC
+    add_library("test-lib"
         "src/test/cpp/TestUtils.hpp"
         "src/test/cpp/TestUtils.cpp"
         "src/test/cpp/TestApplication.hpp"
         "src/test/cpp/TestApplication.cpp"
+
         "src/test/cpp/unit/UnitTests.hpp"
     )
+    generate_export_header("test-lib"
+        BASE_NAME "TEST_LIB"
+        EXPORT_FILE_NAME "generated/src/test/cpp/test_lib_export.hpp"
+    )
+    if(NOT "${BUILD_SHARED_LIBS}")
+        target_compile_definitions("test-lib" PUBLIC
+            "TEST_LIB_STATIC_DEFINE"
+        )
+    endif()
     target_include_directories("test-lib" PUBLIC
+        "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/generated/src/test/cpp>"
         "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/test/cpp>"
         "$<INSTALL_INTERFACE:include>"
     )
@@ -439,9 +437,9 @@ if(NOT "${SKIP_TEST}")
         if("${CMAKE_SYSTEM_NAME}" STREQUAL "Windows")
             add_custom_command(TARGET "test-app"
                 PRE_BUILD
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory "$<TARGET_PROPERTY:${PROJECT_NAME},RUNTIME_OUTPUT_DIRECTORY>" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CONAN_INSTALL_PREFIX}/bin" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CONAN_INSTALL_TEST_PREFIX}/bin" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CONAN_INSTALL_PREFIX}/test/bin" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CONAN_INSTALL_PREFIX}/bin" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "$<TARGET_PROPERTY:${PROJECT_NAME},RUNTIME_OUTPUT_DIRECTORY>" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
                 WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
                 USES_TERMINAL
                 VERBATIM
@@ -449,9 +447,10 @@ if(NOT "${SKIP_TEST}")
         else()
             add_custom_command(TARGET "test-app"
                 PRE_BUILD
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory "$<TARGET_PROPERTY:${PROJECT_NAME},LIBRARY_OUTPUT_DIRECTORY>" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CONAN_INSTALL_PREFIX}/lib" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
-                COMMAND "${CMAKE_COMMAND}" -E copy_directory "${CONAN_INSTALL_TEST_PREFIX}/lib" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CONAN_INSTALL_PREFIX}/test/lib" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "$<TARGET_PROPERTY:test-lib,LIBRARY_OUTPUT_DIRECTORY>" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "${CONAN_INSTALL_PREFIX}/lib" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
+                COMMAND "${CMAKE_COMMAND}" "-E" "copy_directory" "$<TARGET_PROPERTY:${PROJECT_NAME},LIBRARY_OUTPUT_DIRECTORY>" "$<TARGET_PROPERTY:test-app,RUNTIME_OUTPUT_DIRECTORY>"
                 WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
                 USES_TERMINAL
                 VERBATIM
@@ -473,9 +472,34 @@ if(NOT "${SKIP_TEST}")
         PROPERTIES ENVIRONMENT "PATH=$<TARGET_FILE_DIR:test-app>;${ENV_PATH}"
     )
 
+    set(TEST_GROUP ".*UnitTests" CACHE STRING "...")
+    set(TEST_CASE "all" CACHE STRING "...")
+
+    message(STATUS "TEST_GROUP: '${TEST_GROUP}'")
+    message(STATUS "TEST_CASE: '${TEST_CASE}'")
+
+    if("${TEST_GROUP}" STREQUAL "all" AND "${TEST_CASE}" STREQUAL "all")
+        set(TEST_REGEXP "^.+\\..+$")
+    elseif(NOT "${TEST_GROUP}" STREQUAL "all" AND "${TEST_CASE}" STREQUAL "all")
+        set(TEST_REGEXP "^${TEST_GROUP}\\..+$")
+    elseif("${TEST_GROUP}" STREQUAL "all" AND NOT "${TEST_CASE}" STREQUAL "all")
+        set(TEST_REGEXP "^.+\\.${TEST_CASE}$")
+    elseif(NOT "${TEST_GROUP}" STREQUAL "all" AND NOT "${TEST_CASE}" STREQUAL "all")
+        set(TEST_REGEXP "^${TEST_GROUP}\\.${TEST_CASE}$")
+    endif()
+
+    message(STATUS "TEST_REGEXP: '${TEST_REGEXP}'")
+
     add_custom_command(
         OUTPUT "${PROJECT_BINARY_DIR}/junit.xml"
-        COMMAND "${CMAKE_CTEST_COMMAND}" "--build-nocmake" "--output-junit" "${PROJECT_BINARY_DIR}/junit.xml" "--preset" "${PRESET_NAME}" "-R" "${TEST_REGEXP}"
+        COMMAND "${CMAKE_CTEST_COMMAND}"
+                "--build-nocmake"
+                "--output-junit" "${PROJECT_BINARY_DIR}/junit.xml"
+                "--test-dir" "${PROJECT_BINARY_DIR}"
+                #"-R" "^.+\\..+$"
+                #"-R" "^FunctionalSystemTests\\..+$"
+                #"-R" "^FunctionalUnitTests\\..+$"
+                "-R" "${TEST_REGEXP}"
         DEPENDS "test-app"
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         USES_TERMINAL
@@ -489,7 +513,7 @@ endif()
 
 add_custom_command(
     OUTPUT "${CMAKE_INSTALL_PREFIX}/cmake/${PROJECT_NAME}-config.cmake"
-    COMMAND "${CMAKE_COMMAND}" --install "${PROJECT_BINARY_DIR}" --prefix "${CMAKE_INSTALL_PREFIX}"
+    COMMAND "${CMAKE_COMMAND}" "--install" "${PROJECT_BINARY_DIR}" "--prefix" "${CMAKE_INSTALL_PREFIX}"
     DEPENDS ${TARGET_CMAKE_INSTALL_DEPENDS_ON}
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     USES_TERMINAL
@@ -530,18 +554,20 @@ if("${USE_CONAN}")
 endif()
 
 add_custom_target("vscode"
+    COMMAND "${CMAKE_COMMAND}" "-E" "make_directory" "${PROJECT_SOURCE_DIR}/.vscode"
+    COMMAND "${CMAKE_COMMAND}" "-E" "copy" "${PROJECT_SOURCE_DIR}/src/test/resources/vscode/tasks.json" "${PROJECT_SOURCE_DIR}/.vscode"
     COMMAND "${CMAKE_COMMAND}" "-P" "cmake/util.cmake" "--" "vscode"
             SOURCE_DIR "${PROJECT_SOURCE_DIR}"
             BINARY_DIR "${PROJECT_BINARY_DIR}"
 
             LAUNCH_GENERATE "1"
             LAUNCH_FILE_OVERWRITE "1"
-            LAUNCH_TEMPLATE_FILE "${PROJECT_SOURCE_DIR}/src/test/resources/vscode/launch.json"
+            LAUNCH_TEMPLATE_FILE "${PROJECT_SOURCE_DIR}/src/test/resources/vscode/command-variable-launch.json"
             LAUNCH_FILE "${PROJECT_SOURCE_DIR}/.vscode/launch.json"
             LAUNCH_TESTS_FILE "${PROJECT_BINARY_DIR}/test/bin/tests.json"
-            LAUNCH_TESTS "*.*"
-            LAUNCH_DEFAULT_TEST "*.*"
-    DEPENDS "test-app"
+            LAUNCH_TESTS "*.*" "*UnitTests.*"
+            LAUNCH_TESTS_INDENT "20"
+    DEPENDS "${PROJECT_NAME}" "test-app"
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
     USES_TERMINAL
     VERBATIM
