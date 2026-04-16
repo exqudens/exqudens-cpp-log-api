@@ -159,18 +159,13 @@ if(NOT "${BUILD_SHARED_LIBS}")
 endif()
 
 set(SKIP_TEST "0" CACHE BOOL "...")
-
 message(STATUS "SKIP_TEST: '${SKIP_TEST}'")
 
 set(TARGET_CMAKE_INSTALL_DEPENDS_ON "${PROJECT_NAME}")
 if(NOT "${SKIP_TEST}")
     set(TARGET_CMAKE_INSTALL_DEPENDS_ON "cmake-test")
 endif()
-
-message(STATUS "TARGET_CMAKE_INSTALL_DEPENDS_ON:")
-foreach(v IN LISTS "TARGET_CMAKE_INSTALL_DEPENDS_ON")
-    message(STATUS "${v}")
-endforeach()
+message(STATUS "TARGET_CMAKE_INSTALL_DEPENDS_ON: '${TARGET_CMAKE_INSTALL_DEPENDS_ON}'")
 
 set(CONAN_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/conan-install")
 
@@ -470,9 +465,8 @@ if(NOT "${SKIP_TEST}")
     )
 
     set(TEST_GROUP ".*UnitTests" CACHE STRING "...")
-    set(TEST_CASE "all" CACHE STRING "...")
-
     message(STATUS "TEST_GROUP: '${TEST_GROUP}'")
+    set(TEST_CASE "all" CACHE STRING "...")
     message(STATUS "TEST_CASE: '${TEST_CASE}'")
 
     if("${TEST_GROUP}" STREQUAL "all" AND "${TEST_CASE}" STREQUAL "all")
@@ -484,7 +478,6 @@ if(NOT "${SKIP_TEST}")
     elseif(NOT "${TEST_GROUP}" STREQUAL "all" AND NOT "${TEST_CASE}" STREQUAL "all")
         set(TEST_REGEXP "^${TEST_GROUP}\\.${TEST_CASE}$")
     endif()
-
     message(STATUS "TEST_REGEXP: '${TEST_REGEXP}'")
 
     add_custom_command(
