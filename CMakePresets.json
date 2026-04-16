@@ -67,7 +67,7 @@
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": {
                     "type": "FILEPATH",
-                    "value": "../msvc-x64-x64-toolchain.cmake"
+                    "value": "build/msvc-x64-x64-toolchain.cmake"
                 }
             }
         },
@@ -77,7 +77,7 @@
             "cacheVariables": {
                 "CMAKE_TOOLCHAIN_FILE": {
                     "type": "FILEPATH",
-                    "value": "../gcc-toolchain.cmake"
+                    "value": "build/gcc-toolchain.cmake"
                 },
                 "CONAN_COMPILER_LIBCXX": {
                     "type": "STRING",
