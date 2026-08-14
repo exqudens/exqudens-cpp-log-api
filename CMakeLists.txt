@@ -309,7 +309,7 @@ if(NOT "" STREQUAL "${NOT_FOUND_PACKAGE_NAMES}")
     message(FATAL_ERROR "Some package not found!")
 endif()
 
-configure_file("${PROJECT_SOURCE_DIR}/versions.hpp.in" "${PROJECT_BINARY_DIR}/generated/src/main/cpp/${BASE_DIR}/versions.hpp" @ONLY NEWLINE_STYLE UNIX)
+configure_file("${PROJECT_SOURCE_DIR}/Version.hpp.in" "${PROJECT_BINARY_DIR}/generated/src/main/cpp/${BASE_DIR}/Version.hpp" @ONLY)
 
 add_library("${PROJECT_NAME}" INTERFACE
     "src/main/cpp/exqudens/log/api/Logging.hpp"

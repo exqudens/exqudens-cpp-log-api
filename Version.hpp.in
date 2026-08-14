@@ -1,0 +1,14 @@
+#pragma once
+
+#include <cstdint>
+#include <iostream>
+
+namespace exqudens::log::api {
+
+    enum class EXQUDENS_LOG_API_EXPORT Vesrsion : uint16_t {
+        MAJOR = @PROJECT_VERSION_MAJOR@,
+        MINOR = @PROJECT_VERSION_MINOR@,
+        PATCH = @PROJECT_VERSION_PATCH@
+    };
+
+}

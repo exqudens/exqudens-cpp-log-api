@@ -19,6 +19,7 @@
 #ifndef EXQUDENS_LOG_API_EXPORT
 #define EXQUDENS_LOG_API_EXPORT
 #endif
+#include "exqudens/log/api/Version.hpp"
 #include "exqudens/log/api/Logging.hpp"
 
 #define CALL_INFO std::string(__FUNCTION__) + "(" + std::filesystem::path(__FILE__).filename().string() + ":" + std::to_string(__LINE__) + ")"
@@ -109,6 +110,10 @@ namespace exqudens::log::api {
             std::string testGroup = testing::UnitTest::GetInstance()->current_test_info()->test_suite_name();
             std::string testCase = testing::UnitTest::GetInstance()->current_test_info()->name();
             std::cout << LOGGER_ID << " " << '"' << testGroup << '.' << testCase << '"' << " bgn" << std::endl;
+
+            std::cout << LOGGER_ID << " exqudens.log.api.Vesrsion.MAJOR: " << static_cast<uint16_t>(exqudens::log::api::Vesrsion::MAJOR) << std::endl;
+            std::cout << LOGGER_ID << " exqudens.log.api.Vesrsion.MINOR: " << static_cast<uint16_t>(exqudens::log::api::Vesrsion::MINOR) << std::endl;
+            std::cout << LOGGER_ID << " exqudens.log.api.Vesrsion.PATCH: " << static_cast<uint16_t>(exqudens::log::api::Vesrsion::PATCH) << std::endl;
 
             std::map<std::string, std::any> currentInfo = {
                 {"file", std::filesystem::path(__FILE__).filename().generic_string()},
